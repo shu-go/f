@@ -37,4 +37,15 @@ copy f another.exe
 another --add gitinit echo hoge hoge
 ```
 
+# config dir:
+
+1. local directory
+   - f.json
+2. config directory
+   - {CONFIG_DIR}/faker/f.json
+   - Windows: %appdata%\faker\f.json
+   - (see https://cs.opensource.google/go/go/+/go1.17.3:src/os/file.go;l=457)
+If none of 1,2 files exist, --add writes to 1.
+
+
 <!-- vim: set et ft=markdown sts=4 sw=4 ts=4 tw=0 : -->
