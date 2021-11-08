@@ -86,8 +86,9 @@ another --add gitinit echo hoge hoge
 ----
 
 config dir:
-    1. local directory
+    1. exe path
         ` + appname + `.json
+        Place the json in the same location as the executable.
     2. config directory 
         {CONFIG_DIR}/` + userConfigFolder + `/` + appname + `.json
         Windows: %appdata%\faker\` + appname + `.json
