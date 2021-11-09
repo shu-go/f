@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/shu-go/gli"
@@ -26,6 +27,9 @@ type Config struct {
 type globalCmd struct {
 	Add    bool `help:"add/replace a command"`
 	Remove bool `help:"remove a command"`
+
+	List     bool `cli:"list,list-by-name"`
+	ListPath bool `cli:"list-by-path"`
 }
 
 const userConfigFolder = "faker"
@@ -130,7 +134,28 @@ config dir:
 		return
 	}
 
-	if len(args) < 1 {
+	if len(args) < 1 || c.List || c.ListPath {
+		if c.ListPath {
+			sort.Slice(config.Commands, func(i, j int) bool {
+				if config.Commands[i].Path < config.Commands[j].Path {
+					return true
+				} else {
+					len1 := len(config.Commands[i].Args)
+					len2 := len(config.Commands[j].Args)
+					if len1 > len2 {
+						len1 = len2
+					}
+
+					for k := 0; k < len1; k++ {
+						if config.Commands[i].Args[k] < config.Commands[j].Args[k] {
+							return true
+						}
+					}
+				}
+				return false
+			})
+		}
+
 		fmt.Println("commands:")
 		for _, c := range config.Commands {
 			fmt.Printf("\t%v\t%v %v\n", c.Name, c.Path, c.Args)
@@ -206,6 +231,10 @@ func addCommand(config *Config, name, path string, args []string) {
 			Args: args,
 		})
 	}
+
+	sort.Slice(config.Commands, func(i, j int) bool {
+		return config.Commands[i].Name < config.Commands[j].Name
+	})
 }
 
 func removeCommand(config *Config, name string) {
