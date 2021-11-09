@@ -95,7 +95,7 @@ config dir:
         Place the json in the same location as the executable.
     2. config directory 
         {CONFIG_DIR}/` + userConfigFolder + `/` + appname + `.json
-        Windows: %appdata%\faker\` + appname + `.json
+        Windows: %appdata%\` + userConfigFolder + `\` + appname + `.json
         (see https://cs.opensource.google/go/go/+/go1.17.3:src/os/file.go;l=457)
     If none of 1,2 files exist, --add writes to 1.
 `
