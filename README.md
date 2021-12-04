@@ -37,6 +37,16 @@ copy f another.exe
 another --add gitinit echo hoge hoge
 ```
 
+## piping process
+
+```
+f --add clip cmd /c echo "|" clip
+
+f clip abc
+```
+
+Args like "abc" above goes to the first command (echo).
+
 # config dir:
 
 1. exe path
