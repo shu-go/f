@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/shu-go/gli"
@@ -199,17 +200,61 @@ config dir:
 		return
 	}
 
-	oscmd := exec.Command(fcmd.Path, append(fcmd.Args, args[1:]...)...)
-	oscmd.Stdin = os.Stdin
-	oscmd.Stdout = os.Stdout
-	oscmd.Stderr = os.Stderr
-	err = oscmd.Run()
-	if err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
-			os.Exit(exit.ExitCode())
+	oscmds := make([]exec.Cmd, 1)
+	curr := &oscmds[0]
+	curr.Path = fcmd.Path
+	//rog.Print("fcmd.Args:", fcmd.Args)
+	for i, a := range fcmd.Args {
+		//rog.Print(a)
+
+		if strings.HasPrefix(a, "|") {
+			oscmds = append(oscmds, exec.Cmd{})
+			curr = &oscmds[len(oscmds)-1]
+
+			//rog.Print("new cmd")
+
+			if fcmd.Args[i] != "|" {
+				curr.Path = a[1:]
+			}
+		} else {
+			if curr.Path == "" {
+				curr.Path = a
+			} else {
+				curr.Args = append(curr.Args, a)
+			}
+			//rog.Printf("curr: %T", curr)
 		}
-		os.Exit(1)
+	}
+
+	oscmds[0].Args = append(oscmds[0].Args, args[1:]...)
+
+	oscmds[0].Stdin = os.Stdin
+	oscmds[0].Stderr = os.Stderr
+	oscmds[len(oscmds)-1].Stdout = os.Stdout
+	oscmds[len(oscmds)-1].Stderr = os.Stderr
+	for i := 1; i < len(oscmds); i++ {
+		stdoutPipe, err := oscmds[i-1].StdoutPipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "stdoutPipe")
+			return
+		}
+		oscmds[i].Stdin = stdoutPipe
+		oscmds[i].Stderr = os.Stderr
+	}
+
+	for _, c := range oscmds {
+		err = c.Start()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "start: %v\n", err)
+			return
+		}
+	}
+
+	for _, c := range oscmds {
+		err = c.Wait()
+		if err != nil {
+			os.Exit(1)
+		}
 	}
 }
 
