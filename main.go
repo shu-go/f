@@ -203,6 +203,11 @@ config dir:
 	oscmds := make([]exec.Cmd, 1)
 	curr := &oscmds[0]
 	curr.Path = fcmd.Path
+	p, err := exec.LookPath(curr.Path)
+	if err == nil {
+		curr.Path = p
+	}
+	curr.Args = append(curr.Args, fcmd.Path)
 	//rog.Print("fcmd.Args:", fcmd.Args)
 	for i, a := range fcmd.Args {
 		//rog.Print(a)
@@ -215,16 +220,28 @@ config dir:
 
 			if fcmd.Args[i] != "|" {
 				curr.Path = a[1:]
+				p, err := exec.LookPath(curr.Path)
+				if err == nil {
+					curr.Path = p
+				}
+				curr.Args = append(curr.Args, a[1:])
 			}
 		} else {
 			if curr.Path == "" {
 				curr.Path = a
+				p, err := exec.LookPath(curr.Path)
+				if err == nil {
+					curr.Path = p
+				}
+				curr.Args = append(curr.Args, a[1:])
 			} else {
 				curr.Args = append(curr.Args, a)
 			}
 			//rog.Printf("curr: %T", curr)
 		}
 	}
+
+	//rog.Print("oscmds", len(oscmds))
 
 	oscmds[0].Args = append(oscmds[0].Args, args[1:]...)
 
@@ -233,27 +250,34 @@ config dir:
 	oscmds[len(oscmds)-1].Stdout = os.Stdout
 	oscmds[len(oscmds)-1].Stderr = os.Stderr
 	for i := 1; i < len(oscmds); i++ {
+		//rog.Print("pipe")
 		stdoutPipe, err := oscmds[i-1].StdoutPipe()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "stdoutPipe")
+			fmt.Fprintln(os.Stderr, "stdoutPipe: %v", err)
 			return
 		}
 		oscmds[i].Stdin = stdoutPipe
 		oscmds[i].Stderr = os.Stderr
 	}
+	//rog.Printf("oscmds:%#v", oscmds)
 
-	for _, c := range oscmds {
-		err = c.Start()
+	for i := range oscmds {
+		//rog.Printf("starting %#v", c)
+		err = oscmds[i].Start()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "start: %v\n", err)
 			return
 		}
 	}
 
-	for _, c := range oscmds {
-		err = c.Wait()
-		if err != nil {
-			os.Exit(1)
+	for i := range oscmds {
+		err = oscmds[i].Wait()
+		//rog.Print(oscmds[i], err)
+		if i == len(oscmds)-1 && err != nil {
+			var exit *exec.ExitError
+			if errors.As(err, &exit) {
+				os.Exit(exit.ExitCode())
+			}
 		}
 	}
 }
