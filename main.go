@@ -144,11 +144,8 @@ config dir:
 	}
 
 	if c.Add {
-		n := args[0]
-		p := args[1]
-		a := args[2:]
+		addCommand(config, args[0], args[1], args[2:])
 
-		addCommand(config, n, p, a)
 		err := saveConfig(configPath, config)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -158,8 +155,7 @@ config dir:
 	}
 
 	if c.Remove {
-		n := args[0]
-		removeCommand(config, n)
+		removeCommand(config, args[0])
 
 		err := saveConfig(configPath, config)
 		if err != nil {
