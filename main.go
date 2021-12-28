@@ -127,9 +127,9 @@ config dir:
 		return
 	}
 
-	f := determineConfigPath()
+	configPath := determineConfigPath()
 
-	config, err := loadConfig(f)
+	config, err := loadConfig(configPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -163,7 +163,7 @@ config dir:
 		}
 
 		fmt.Println("")
-		fmt.Println("config:", f)
+		fmt.Println("config:", configPath)
 
 		return
 	}
@@ -174,7 +174,7 @@ config dir:
 		a := args[2:]
 
 		addCommand(config, n, p, a)
-		err := saveConfig(f, config)
+		err := saveConfig(configPath, config)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -186,7 +186,7 @@ config dir:
 		n := args[0]
 		removeCommand(config, n)
 
-		err := saveConfig(f, config)
+		err := saveConfig(configPath, config)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -364,8 +364,8 @@ func determineConfigPath() string {
 	return ep
 }
 
-func loadConfig(f string) (*Config, error) {
-	file, err := os.Open(f)
+func loadConfig(configPath string) (*Config, error) {
+	file, err := os.Open(configPath)
 	if err != nil {
 		return &Config{}, nil
 	}
@@ -383,13 +383,13 @@ func loadConfig(f string) (*Config, error) {
 	return &config, nil
 }
 
-func saveConfig(f string, config *Config) error {
+func saveConfig(configPath string, config *Config) error {
 	content, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(f, content, os.ModePerm)
+	err = os.WriteFile(configPath, content, os.ModePerm)
 	if err != nil {
 		return err
 	}
