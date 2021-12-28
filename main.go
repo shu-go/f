@@ -138,34 +138,7 @@ config dir:
 	}
 
 	if len(args) < 1 || c.List || c.ListPath {
-		if c.ListPath {
-			sort.Slice(config.Commands, func(i, j int) bool {
-				if config.Commands[i].Path < config.Commands[j].Path {
-					return true
-				} else {
-					len1 := len(config.Commands[i].Args)
-					len2 := len(config.Commands[j].Args)
-					if len1 > len2 {
-						len1 = len2
-					}
-
-					for k := 0; k < len1; k++ {
-						if config.Commands[i].Args[k] < config.Commands[j].Args[k] {
-							return true
-						}
-					}
-				}
-				return false
-			})
-		}
-
-		fmt.Println("commands:")
-		for _, c := range config.Commands {
-			fmt.Printf("\t%v\t%v %v\n", c.Name, c.Path, c.Args)
-		}
-
-		fmt.Println("")
-		fmt.Println("config:", configPath)
+		listCommands(config, c.ListPath, configPath)
 
 		return
 	}
@@ -282,6 +255,37 @@ config dir:
 			}
 		}
 	}
+}
+
+func listCommands(config *Config, listByPath bool, configPath string) {
+	if listByPath {
+		sort.Slice(config.Commands, func(i, j int) bool {
+			if config.Commands[i].Path < config.Commands[j].Path {
+				return true
+			} else {
+				len1 := len(config.Commands[i].Args)
+				len2 := len(config.Commands[j].Args)
+				if len1 > len2 {
+					len1 = len2
+				}
+
+				for k := 0; k < len1; k++ {
+					if config.Commands[i].Args[k] < config.Commands[j].Args[k] {
+						return true
+					}
+				}
+			}
+			return false
+		})
+	}
+
+	fmt.Println("commands:")
+	for _, c := range config.Commands {
+		fmt.Printf("\t%v\t%v %v\n", c.Name, c.Path, c.Args)
+	}
+
+	fmt.Println("")
+	fmt.Println("config:", configPath)
 }
 
 func addCommand(config *Config, name, path string, args []string) {
