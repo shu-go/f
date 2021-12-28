@@ -169,91 +169,12 @@ config dir:
 		return
 	}
 
-	fcmd := findCommand(config, args[0])
-	if fcmd == nil {
-		fmt.Fprintln(os.Stderr, args[0]+" not found")
-		return
+	exitCode, err := execCommand(config, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
 	}
-
-	oscmds := make([]exec.Cmd, 1)
-	curr := &oscmds[0]
-	curr.Path = fcmd.Path
-	p, err := exec.LookPath(curr.Path)
-	if err == nil {
-		curr.Path = p
-	}
-	curr.Args = append(curr.Args, fcmd.Path)
-	//rog.Print("fcmd.Args:", fcmd.Args)
-	for i, a := range fcmd.Args {
-		//rog.Print(a)
-
-		if strings.HasPrefix(a, "|") {
-			oscmds = append(oscmds, exec.Cmd{})
-			curr = &oscmds[len(oscmds)-1]
-
-			//rog.Print("new cmd")
-
-			if fcmd.Args[i] != "|" {
-				curr.Path = a[1:]
-				p, err := exec.LookPath(curr.Path)
-				if err == nil {
-					curr.Path = p
-				}
-				curr.Args = append(curr.Args, a[1:])
-			}
-		} else {
-			if curr.Path == "" {
-				curr.Path = a
-				p, err := exec.LookPath(curr.Path)
-				if err == nil {
-					curr.Path = p
-				}
-				curr.Args = append(curr.Args, a[1:])
-			} else {
-				curr.Args = append(curr.Args, a)
-			}
-			//rog.Printf("curr: %T", curr)
-		}
-	}
-
-	//rog.Print("oscmds", len(oscmds))
-
-	oscmds[0].Args = append(oscmds[0].Args, args[1:]...)
-
-	oscmds[0].Stdin = os.Stdin
-	oscmds[0].Stderr = os.Stderr
-	oscmds[len(oscmds)-1].Stdout = os.Stdout
-	oscmds[len(oscmds)-1].Stderr = os.Stderr
-	for i := 1; i < len(oscmds); i++ {
-		//rog.Print("pipe")
-		stdoutPipe, err := oscmds[i-1].StdoutPipe()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "stdoutPipe: %v", err)
-			return
-		}
-		oscmds[i].Stdin = stdoutPipe
-		oscmds[i].Stderr = os.Stderr
-	}
-	//rog.Printf("oscmds:%#v", oscmds)
-
-	for i := range oscmds {
-		//rog.Printf("starting %#v", c)
-		err = oscmds[i].Start()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "start: %v\n", err)
-			return
-		}
-	}
-
-	for i := range oscmds {
-		err = oscmds[i].Wait()
-		//rog.Print(oscmds[i], err)
-		if i == len(oscmds)-1 && err != nil {
-			var exit *exec.ExitError
-			if errors.As(err, &exit) {
-				os.Exit(exit.ExitCode())
-			}
-		}
+	if exitCode != 0 {
+		os.Exit(exitCode)
 	}
 }
 
@@ -320,6 +241,93 @@ func removeCommand(config *Config, name string) {
 		}
 	}
 	config.Commands = append(config.Commands[:idx], config.Commands[idx+1:]...)
+}
+
+func execCommand(config *Config, args []string) (int, error) {
+	fcmd := findCommand(config, args[0])
+	if fcmd == nil {
+		return 1, fmt.Errorf(args[0] + " not found")
+	}
+
+	oscmds := make([]exec.Cmd, 1)
+	curr := &oscmds[0]
+	curr.Path = fcmd.Path
+	p, err := exec.LookPath(curr.Path)
+	if err == nil {
+		curr.Path = p
+	}
+	curr.Args = append(curr.Args, fcmd.Path)
+	//rog.Print("fcmd.Args:", fcmd.Args)
+	for i, a := range fcmd.Args {
+		//rog.Print(a)
+
+		if strings.HasPrefix(a, "|") {
+			oscmds = append(oscmds, exec.Cmd{})
+			curr = &oscmds[len(oscmds)-1]
+
+			//rog.Print("new cmd")
+
+			if fcmd.Args[i] != "|" {
+				curr.Path = a[1:]
+				p, err := exec.LookPath(curr.Path)
+				if err == nil {
+					curr.Path = p
+				}
+				curr.Args = append(curr.Args, a[1:])
+			}
+		} else {
+			if curr.Path == "" {
+				curr.Path = a
+				p, err := exec.LookPath(curr.Path)
+				if err == nil {
+					curr.Path = p
+				}
+				curr.Args = append(curr.Args, a[1:])
+			} else {
+				curr.Args = append(curr.Args, a)
+			}
+			//rog.Printf("curr: %T", curr)
+		}
+	}
+
+	//rog.Print("oscmds", len(oscmds))
+
+	oscmds[0].Args = append(oscmds[0].Args, args[1:]...)
+
+	oscmds[0].Stdin = os.Stdin
+	oscmds[0].Stderr = os.Stderr
+	oscmds[len(oscmds)-1].Stdout = os.Stdout
+	oscmds[len(oscmds)-1].Stderr = os.Stderr
+	for i := 1; i < len(oscmds); i++ {
+		//rog.Print("pipe")
+		stdoutPipe, err := oscmds[i-1].StdoutPipe()
+		if err != nil {
+			return 1, fmt.Errorf("stdoutPipe: %v", err)
+		}
+		oscmds[i].Stdin = stdoutPipe
+		oscmds[i].Stderr = os.Stderr
+	}
+	//rog.Printf("oscmds:%#v", oscmds)
+
+	for i := range oscmds {
+		//rog.Printf("starting %#v", c)
+		err = oscmds[i].Start()
+		if err != nil {
+			return 1, fmt.Errorf("start: %v\n", err)
+		}
+	}
+
+	for i := range oscmds {
+		err = oscmds[i].Wait()
+		//rog.Print(oscmds[i], err)
+		if i == len(oscmds)-1 && err != nil {
+			var exit *exec.ExitError
+			if errors.As(err, &exit) {
+				return exit.ExitCode(), nil
+			}
+		}
+	}
+	return 0, nil
 }
 
 func findCommand(config *Config, name string) *Command {
