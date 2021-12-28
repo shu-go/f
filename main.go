@@ -45,6 +45,7 @@ func init() {
 }
 
 // not work yet
+/*
 func (c globalCmd) Before(args []string) error {
 	if c.Add && c.Remove {
 		return errors.New("don't pass both --add and --remove!!")
@@ -60,6 +61,7 @@ func (c globalCmd) Before(args []string) error {
 
 	return nil
 }
+*/
 
 func main() {
 	appname := determineAppName("f")
