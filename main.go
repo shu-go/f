@@ -62,14 +62,7 @@ func (c globalCmd) Before(args []string) error {
 }
 
 func main() {
-	appname, err := os.Executable()
-	if err != nil {
-		appname = "f"
-	} else {
-		appname = filepath.Base(appname)
-		ext := filepath.Ext(appname)
-		appname = appname[:len(appname)-len(ext)]
-	}
+	appname := determineAppName("f")
 
 	app := gli.NewWith(&globalCmd{})
 	app.Name = appname
@@ -405,4 +398,14 @@ func saveConfig(configPath string, config *Config) error {
 	}
 
 	return nil
+}
+
+func determineAppName(defaultName string) string {
+	appname, err := os.Executable()
+	if err != nil {
+		return defaultName
+	}
+	appname = filepath.Base(appname)
+	ext := filepath.Ext(appname)
+	return appname[:len(appname)-len(ext)]
 }
